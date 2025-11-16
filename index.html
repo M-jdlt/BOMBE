@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Désarmez la Bombe et Sauvez la Planète</title>
+
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="images/icon-192.png" type="image/png" />
+<meta name="theme-color" content="#0f0f0f" />
+
+<style>
+@keyframes blink {0%,50%,100%{background-color:#0f0f0f;}25%,75%{background-color:red;}}
+@keyframes pulse {0%,100%{transform:scale(1);color:#00ff00;}50%{transform:scale(1.1);color:yellow;}}
+@keyframes shake {0%,100%{transform:translate(0,0);}10%,30%,50%,70%,90%{transform:translate(-8px,8px);}20%,40%,60%,80%{transform:translate(8px,-8px);}}
+body{margin:0;font-family:'Orbitron',sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background-color:#0f0f0f;color:#00ff00;overflow:hidden;text-align:center;}
+#timer{font-size:6rem;margin:20px 0;animation:pulse 1s infinite;}
+input,button{font-size:1.2rem;padding:12px;margin:10px;width:80%;max-width:400px;border:2px solid #00ff00;border-radius:5px;background:#111;color:#00ff00;text-align:center;}
+button{background-color:#00ff00;color:#111;border:none;border-radius:8px;cursor:pointer;transition:0.2s;z-index:10;position:relative;}
+button:hover{background-color:#00cc00;}
+.warning-light{position:absolute;top:0;width:100%;height:10px;background:red;animation:blink 1s infinite;z-index:-1;}
+.explosion-flash{position:fixed;top:0;left:0;width:100%;height:100%;background:red;opacity:0;pointer-events:none;z-index:999;}
+.shake{animation:shake 0.4s infinite;}
+#message{margin-top:10px;font-size:1.2rem;color:yellow;}
+#popupMessage{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);font-size:2rem;color:#00ff00;background:rgba(0,0,0,0.85);padding:25px 35px;border:3px solid #00ff00;border-radius:15px;text-align:center;z-index:1000;transition:transform 0.5s ease,opacity 0.5s ease;opacity:0;}
+#popupMessage.show{transform:translate(-50%,-50%) scale(1);opacity:1;}
+#qrcode{margin-top:20px;background:#fff;padding:10px;border-radius:10px;display:inline-block;}
+#qrtext{color:yellow;font-size:1.1rem;margin-top:10px;}
+@media(max-height:700px){#timer{font-size:3rem;}#popupMessage{font-size:1.5rem;}}
+</style>
+</head>
+
+<body>
+<div class="warning-light"></div>
+<div class="explosion-flash" id="explosionFlash"></div>
+
+<h1>🚨 Désarmez la Bombe et Sauvez la Planète 🌎 🚨</h1>
+<button id="startBtn">COMMENCER</button>
+
+<div id="timer">60:00</div>
+<input type="text" id="codeInput" placeholder="Entrez le code 4 chiffres pour désamorcer" />
+<button id="defuseBtn">VÉRIFIER LE CODE</button>
+
+<div id="message"></div>
+<div id="popupMessage"></div>
+<div id="qrContainer"></div>
+
+<!-- 🔊 Sound files -->
+<audio id="chimeSound" src="sounds/chime.mp3" preload="auto"></audio>
+<audio id="explosionSound" src="sounds/explosion.mp3" preload="auto"></audio>
+<audio id="tickSound" src="sounds/tick.mp3" preload="auto"></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script>
+let totalTime = 3600;
+let interval = null;
+const correctCode = "6421";
+const timerDisplay = document.getElementById("timer");
+const messageDiv = document.getElementById("message");
+const explosionFlash = document.getElementById("explosionFlash");
+const popupMessage = document.getElementById("popupMessage");
+const qrContainer = document.getElementById("qrContainer");
+const chimeSound = document.getElementById("chimeSound");
+const explosionSound = document.getElementById("explosionSound");
+const tickSound = document.getElementById("tickSound");
+
+function playTick() {
+  tickSound.currentTime = 0;
+  tickSound.play().catch(()=>{});
+}
+
+function showQRCode(imagePath, text) {
+  qrContainer.innerHTML = "";
+  const img = document.createElement("img");
+  img.src = imagePath;
+  img.width = 200;
+  img.height = 200;
+  qrContainer.appendChild(img);
+  const caption = document.createElement("div");
+  caption.id = "qrtext";
+  caption.textContent = text;
+  qrContainer.appendChild(caption);
+  qrContainer.style.display = "block";
+}
+
+function showPopup(text, color="#00ff00") {
+  popupMessage.textContent = text;
+  popupMessage.style.color = color;
+  popupMessage.classList.add("show");
+  setTimeout(()=>popupMessage.classList.remove("show"),4000);
+}
+
+function updateDisplay(){
+  let minutes = Math.floor(totalTime / 60);
+  let seconds = totalTime % 60;
+  timerDisplay.textContent = `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+}
+
+function startTimer(){
+  if(interval) return;
+  playTick();
+  messageDiv.textContent = "⏳ L'avenir est entre vos mains!";
+  updateDisplay();
+
+  interval = setInterval(()=>{
+    totalTime--;
+    updateDisplay();
+    if(totalTime % 30 === 0 && totalTime > 0){ playTick(); }
+
+    if(totalTime <= 10 && totalTime > 0){
+      timerDisplay.style.color = (totalTime % 2 === 0) ? "red" : "yellow";
+    } else {
+      timerDisplay.style.color = "#00ff00";
+    }
+
+    if(totalTime <= 0){
+      clearInterval(interval);
+      explodeBomb();
+    }
+  },1000);
+}
+
+function stopTimer(){
+  const input = document.getElementById("codeInput").value.trim();
+  if(input === correctCode){
+    clearInterval(interval);
+    messageDiv.textContent = "✅ Bombe désactivée avec succès !";
+    showPopup("✅ Bombe désamorcée !", "#00ff00");
+    chimeSound.play();
+    showQRCode("images/qr-success.png", "Scannez ici pour en savoir plus");
+  } else {
+    messageDiv.textContent = "❌ Code incorrect, Bombe toujours active !";
+    showPopup("❌ Code incorrect !", "red");
+  }
+}
+
+function explodeBomb(){
+  explosionFlash.style.opacity = 1;
+  document.body.classList.add("shake");
+  showPopup("💥 BOOM ! Le temps est écoulé !", "red");
+  messageDiv.textContent = "💥 BOOM ! Mission échouée !";
+  explosionSound.play();
+
+  setTimeout(()=>{
+    explosionFlash.style.opacity = 0;
+    document.body.classList.remove("shake");
+    popupMessage.innerHTML = "❌ YOU HAVE FAILED";
+    popupMessage.style.color = "red";
+    popupMessage.classList.add("show");
+    qrContainer.innerHTML = "";
+    const img = document.createElement("img");
+    img.src = "images/qr-fail.png";
+    img.width = 200;
+    img.height = 200;
+    qrContainer.appendChild(img);
+    const caption = document.createElement("div");
+    caption.id = "qrtext";
+    caption.textContent = "Scan to find out more";
+    qrContainer.appendChild(caption);
+  }, 10000);
+}
+
+document.getElementById("startBtn").addEventListener("click", startTimer);
+document.getElementById("defuseBtn").addEventListener("click", stopTimer);
+
+// ✅ PWA: register service worker
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("Service Worker registered successfully."))
+      .catch(err => console.log("Service Worker registration failed:", err));
+  });
+}
+</script>
+</body>
+</html>
