@@ -124,12 +124,12 @@ function stopTimer(){
   const input = document.getElementById("codeInput").value.trim();
   if(input === correctCode){
     clearInterval(interval);
-    messageDiv.textContent = "✅ Bombe désactivée avec succès !";
-    showPopup("✅ Bombe désamorcée !", "#00ff00");
+    messageDiv.textContent = "✅ La batterie a redémarré ! !";
+    showPopup("✅ La batterie a redémarré !!", "#00ff00");
     chimeSound.play();
     showQRCode("images/qr-success.png", "Scannez ici pour en savoir plus");
   } else {
-    messageDiv.textContent = "❌ Code incorrect, Bombe toujours active !";
+    messageDiv.textContent = "❌ Code incorrect !";
     showPopup("❌ Code incorrect !", "red");
   }
 }
@@ -137,14 +137,14 @@ function stopTimer(){
 function explodeBomb(){
   explosionFlash.style.opacity = 1;
   document.body.classList.add("shake");
-  showPopup("💥 BOOM ! Le temps est écoulé !", "red");
-  messageDiv.textContent = "💥 BOOM ! Mission échouée !";
+  showPopup("Le temps est écoulé !", "red");
+  messageDiv.textContent = "💥Mission échouée !";
   explosionSound.play();
 
   setTimeout(()=>{
     explosionFlash.style.opacity = 0;
     document.body.classList.remove("shake");
-    popupMessage.innerHTML = "❌ YOU HAVE FAILED";
+    popupMessage.innerHTML = "❌ Mission échouée !";
     popupMessage.style.color = "red";
     popupMessage.classList.add("show");
     qrContainer.innerHTML = "";
